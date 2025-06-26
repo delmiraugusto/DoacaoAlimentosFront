@@ -1,7 +1,7 @@
 import tkinter as tk
 from telas import (
     tela_usuarios, tela_alimentos, tela_endereco,
-    tela_status, tela_doacao, tela_doacao_item
+    tela_status, tela_doacao, tela_doacao_item, tela_perfil
 )
 
 def iniciar():
@@ -16,6 +16,7 @@ def iniciar():
         ("Alimentos", tela_alimentos.abrir_tela),
         ("Endereço", tela_endereco.abrir_tela),
         ("Status", tela_status.abrir_tela),
+        ("Perfil", tela_perfil.abrir_tela),
         ("Doação", tela_doacao.abrir_tela),
         ("DoacaoItem", tela_doacao_item.abrir_tela)
     ]
