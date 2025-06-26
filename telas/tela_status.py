@@ -5,15 +5,15 @@ from servicos import api
 
 def abrir_tela():
     janela = tk.Toplevel()
-    janela.title("Alimentos")
+    janela.title("Status")
     janela.geometry("400x350")
 
-    campos = ["nome", "marca"]
+    campos = ["nome"]
     entradas = {}
 
-    id_alimento_atual = None
+    id_status_atual = None
 
-    tk.Label(janela, text="Alimentos", font=("Arial", 16, "bold")).pack(pady=10)
+    tk.Label(janela, text="Status", font=("Arial", 16, "bold")).pack(pady=10)
 
     for campo in campos:
         tk.Label(janela, text=campo.capitalize()).pack()
@@ -22,32 +22,26 @@ def abrir_tela():
         entradas[campo] = entry
 
     def buscar():
-        global id_alimento_atual
+        global id_status_atual
         try:
-            id_ = simpledialog.askstring("Buscar Alimento", "Informe o ID:")
-            if not id_:
-                return
-                        
-            dados = api.get_por_id("alimentos", id_)
-            id_alimento_atual = id_
-
-            for campo in campos:
-                entradas[campo].delete(0, tk.END)
-                entradas[campo].insert(0, dados.get(campo, ""))
+            id_ = simpledialog.askstring("Buscar Status", "Informe o ID:")
+            dados = api.get_por_id("status", id_)
+            id_status_atual = id_
+            entradas["nome"].delete(0, tk.END)
+            entradas["nome"].insert(0, dados.get("nome", ""))
         except requests.exceptions.HTTPError as e:
             erro = e.response.text
             messagebox.showerror("Erro: ", str(erro))
 
     def abrir_tela_cadastro():
         cadastro = tk.Toplevel()
-        cadastro.title("Cadastrar Alimento")
+        cadastro.title("Cadastrar Status")
         cadastro.geometry("400x500")
 
-        tk.Label(cadastro, text="Cadastro de Alimento", font=("Arial", 14, "bold")).pack(pady=10)
+        tk.Label(cadastro, text="Cadastro de Status", font=("Arial", 14, "bold")).pack(pady=10)
 
         campos_cadastro = {
             "nome": None,
-            "marca": None,
         }
 
         entradas_cadastro = {}
@@ -63,9 +57,8 @@ def abrir_tela():
             try:
                 dados = {
                     "nome": entradas_cadastro["nome"].get(),
-                    "marca": entradas_cadastro["marca"].get(),
                 }
-                res = api.post("alimentos", dados)
+                res = api.post("status", dados)
                 messagebox.showinfo("Resposta da API", res["msg"])
                 cadastro.destroy()
             except requests.exceptions.HTTPError as e:
@@ -76,16 +69,16 @@ def abrir_tela():
 
 
     def editar():
-        global id_alimento_atual
+        global id_status_atual
         try:
-            if not id_alimento_atual:
-                id_alimento_atual = simpledialog.askstring("Editar Alimento", "Informe o ID:")
-                if not id_alimento_atual:
+            if not id_status_atual:
+                id_status_atual = simpledialog.askstring("Editar Status", "Informe o ID:")
+                if not id_status_atual:
                     return
                 
-            id_ = id_alimento_atual
+            id_ = id_status_atual
             dados = {k: entradas[k].get() for k in campos}
-            res = api.put("alimentos", id_, dados)
+            res = api.put("status", id_, dados)
             messagebox.showinfo("Resposta da API", res["msg"])
         except requests.exceptions.HTTPError as e:
             erro = e.response.text
@@ -93,21 +86,21 @@ def abrir_tela():
 
     def excluir():
         try:
-            id_ = simpledialog.askstring("Excluir Alimento", "Informe o ID:")
+            id_ = simpledialog.askstring("Excluir Status", "Informe o ID:")
             if not id_:
                 return
-            res = api.delete("alimentos", id_)
+            res = api.delete("status", id_)
             messagebox.showinfo("Sucesso", res["message"])
         except requests.exceptions.HTTPError as e:
             erro = e.response.text
             messagebox.showerror("Erro: ", str(erro))
 
     def limpar():
-        for entrada in entradas.values():
-            entrada.delete(0, tk.END)
+        entradas["nome"].delete(0, tk.END)
 
     botoes_frame = tk.Frame(janela)
     botoes_frame.pack(pady=10)
+
 
     for texto, comando in [
         ("Buscar", buscar),
@@ -115,8 +108,6 @@ def abrir_tela():
         ("Editar", editar),
         ("Excluir", excluir)
     ]:
-        
-        
         tk.Button(botoes_frame, text=texto, width=10, command=comando).pack(side=tk.LEFT, padx=5, pady=2)
 
     tk.Button(janela, text="Limpar", width=15, command=limpar).pack(pady=10)
