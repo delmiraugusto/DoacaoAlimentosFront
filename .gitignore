@@ -1,0 +1,10 @@
+venv/
+tela_alimentos.py
+tela_doacao_item.py
+tela_endereco.py
+tela_status.py
+tela_doacao.py
+
+
+__pycache__/
+*.py[cod]
