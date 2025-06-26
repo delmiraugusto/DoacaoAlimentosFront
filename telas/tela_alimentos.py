@@ -66,7 +66,7 @@ def abrir_tela():
                     "marca": entradas_cadastro["marca"].get(),
                 }
                 res = api.post("alimentos", dados)
-                messagebox.showinfo("Resposta da API", res["msg"])
+                messagebox.showinfo("Resposta da API", f'Id: {res["id"]}, {res["msg"]}')
                 cadastro.destroy()
             except requests.exceptions.HTTPError as e:
                 erro = e.response.text
