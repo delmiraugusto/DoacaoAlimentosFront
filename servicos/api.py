@@ -2,6 +2,11 @@ import requests
 
 BASE_URL = "http://192.168.1.3:8080/doacoes/"
 
+def get(endpoint):
+    resp = requests.get(f"{BASE_URL}{endpoint}")
+    resp.raise_for_status()
+    return resp.json()
+
 def get_por_id(endpoint, id_):
     resp = requests.get(f"{BASE_URL}{endpoint}/{id_}")
     resp.raise_for_status()
