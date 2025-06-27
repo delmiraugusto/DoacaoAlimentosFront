@@ -2,40 +2,48 @@ import tkinter as tk
 import requests
 from tkinter import messagebox, simpledialog
 from servicos import api
+from tkinter import ttk
 
 def abrir_tela():
     janela = tk.Toplevel()
     janela.title("Usuários")
     janela.geometry("400x350")
 
-    campos = ["nome", "email", "telefone", "documento"]
-    entradas = {}
+    colunas = ["nome", "email", "telefone", "documento"]
 
-    id_usuario_atual = None
+    tree = ttk.Treeview(janela, columns=colunas, show="headings")
+    for col in colunas:
+        tree.heading(col, text=col.capitalize())
+        tree.column(col, width=150)
 
-    tk.Label(janela, text="Usuários", font=("Arial", 16, "bold")).pack(pady=10)
+    tree.pack(pady=10, fill=tk.BOTH, expand=True)
 
-    for campo in campos:
-        tk.Label(janela, text=campo.capitalize()).pack()
-        entry = tk.Entry(janela, width=40)
-        entry.pack()
-        entradas[campo] = entry
+    entry_edicao = {"widget": None}
 
-    def buscar():
-        global id_usuario_atual
+    def listar_todos():
         try:
-            id_ = simpledialog.askstring("Buscar Usuário", "Informe o ID:")
+            for i in tree.get_children():
+                tree.delete(i)
+            usuarios = api.get("usuarios")
+            for usuario in usuarios:
+                tree.insert("", tk.END, values=(usuario["id"], usuario["nome"], usuario["email"], usuario["telefone"], usuario["documento"],))
+        except requests.exceptions.HTTPError as e:
+            messagebox.showerror("Erro", e.response.text)
+
+    def buscar_por_id():
+        try:
+            id_ = simpledialog.askstring("Buscar Usuario", "Informe o ID:")
             if not id_:
                 return
-            dados = api.get_por_id("usuarios", id_)
-            id_usuario_atual = id_
 
-            for campo in campos:
-                entradas[campo].delete(0, tk.END)
-                entradas[campo].insert(0, dados.get(campo, ""))
+            for i in tree.get_children():
+                tree.delete(i)
+
+            dados = api.get_por_id("usuarios", id_)
+            tree.insert("", tk.END, values=(id_, dados["nome"], dados["email"], dados["telefone"], dados["documento"]))
+
         except requests.exceptions.HTTPError as e:
-            erro = e.response.text
-            messagebox.showerror("Erro: ", str(erro))
+            messagebox.showerror("Erro", e.response.text)
 
 
     def abrir_tela_cadastro():
@@ -96,20 +104,62 @@ def abrir_tela():
         tk.Button(cadastro, text="Cadastrar", width=20, command=enviar_cadastro).pack(pady=10)
 
     def editar():
-        global id_usuario_atual
-        try:
-            if not id_usuario_atual:
-                id_usuario_atual = simpledialog.askstring("Editar Usuário", "Informe o ID:")
-                if not id_usuario_atual:
-                    return
+        if entry_edicao["widget"] is not None:
+            entry_edicao["widget"].event_generate("<FocusOut>")
 
-            id_ = id_usuario_atual
-            dados = {k: entradas[k].get() for k in campos}
+        selecionado = tree.selection()
+        if not selecionado:
+            messagebox.showwarning("Aviso", "Selecione um usuario para editar.")
+            return
+
+        item_id = selecionado[0]
+        valores = tree.item(item_id, "values")
+        id_ = valores[0]
+        nome = valores[1]
+        email = valores[2]
+        telefone = valores[2]
+        documento = valores[2]
+
+        try:
+            dados = {"nome": nome, "email": email, "telefone": telefone, "documento": documento}
             res = api.put("usuarios", id_, dados)
-            messagebox.showinfo("Resposta da API", res["msg"])
+            messagebox.showinfo("Sucesso", res["msg"])
         except requests.exceptions.HTTPError as e:
-            erro = e.response.text
-            messagebox.showerror("Erro: ", str(erro))
+            messagebox.showerror("Erro", e.response.text)
+
+    def editar_celula(event):
+        item = tree.identify_row(event.y)
+        coluna = tree.identify_column(event.x)
+        if not item or coluna == "#1":
+            return
+
+        col_index = int(coluna[1:]) - 1
+        x, y, largura, altura = tree.bbox(item, column=coluna)
+        valor_atual = tree.item(item, "values")[col_index]
+
+        tree.selection_set(item)
+
+        entry = tk.Entry(janela)
+        entry.place(x=x + tree.winfo_rootx() - janela.winfo_rootx(),
+                    y=y + tree.winfo_rooty() - janela.winfo_rooty(),
+                    width=largura, height=altura)
+        entry.insert(0, valor_atual)
+        entry.focus()
+
+        entry_edicao["widget"] = entry
+
+        def salvar_edicao(e=None):
+            novo_valor = entry.get()
+            valores = list(tree.item(item, "values"))
+            valores[col_index] = novo_valor
+            tree.item(item, values=valores)
+            entry.destroy()
+            entry_edicao["widget"] = None  
+
+        entry.bind("<Return>", salvar_edicao)
+        entry.bind("<FocusOut>", salvar_edicao)
+        
+    tree.bind("<Double-1>", editar_celula)
 
     def excluir():
         try:
@@ -122,17 +172,19 @@ def abrir_tela():
             erro = e.response.text
             messagebox.showerror("Erro: ", str(erro))
 
+
     def limpar():
-        for entrada in entradas.values():
-            entrada.delete(0, tk.END)
+        for item in tree.get_children():
+            tree.delete(item)
 
     botoes_frame = tk.Frame(janela)
     botoes_frame.pack(pady=10)
 
     for texto, comando in [
-        ("Buscar", buscar),
+        ("Listar Todos", listar_todos),
+        ("Buscar", buscar_por_id),
         ("Cadastrar", abrir_tela_cadastro),
-        ("Editar", editar),
+        ("Editar", editar), 
         ("Excluir", excluir)
     ]:
         tk.Button(botoes_frame, text=texto, width=10, command=comando).pack(side=tk.LEFT, padx=5)
