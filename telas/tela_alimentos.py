@@ -81,7 +81,7 @@ def abrir_tela():
         tk.Button(cadastro, text="Cadastrar", width=20, command=enviar_cadastro).pack(pady=10)
 
 
-    def editar_alimento():
+    def editar():
         if entry_edicao["widget"] is not None:
             entry_edicao["widget"].event_generate("<FocusOut>")
 
@@ -160,7 +160,7 @@ def abrir_tela():
         ("Listar Todos", listar_todos),
         ("Buscar", buscar_por_id),
         ("Cadastrar", abrir_tela_cadastro),
-        ("Editar", editar_alimento),
+        ("Editar", editar),
         ("Excluir", excluir)
     ]:
         
