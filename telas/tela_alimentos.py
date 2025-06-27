@@ -164,7 +164,6 @@ def abrir_tela():
         ("Excluir", excluir)
     ]:
         
-        
         tk.Button(botoes_frame, text=texto, width=10, command=comando).pack(side=tk.LEFT, padx=5, pady=2)
 
     tk.Button(janela, text="Limpar", width=15, command=limpar).pack(pady=10)
