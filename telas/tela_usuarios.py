@@ -7,7 +7,7 @@ from tkinter import ttk
 def abrir_tela():
     janela = tk.Toplevel()
     janela.title("Usuários")
-    janela.geometry("400x350")
+    janela.geometry("950x450")
 
     colunas = ["nome", "email", "telefone", "documento"]
 

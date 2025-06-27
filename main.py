@@ -7,7 +7,7 @@ from telas import (
 def iniciar():
     root = tk.Tk()
     root.title("Doação de Alimentos")
-    root.geometry("600x400")
+    root.geometry("950x450")
 
     tk.Label(root, text="Doação de Alimentos", font=("Arial", 20, "bold")).pack(pady=20)
 

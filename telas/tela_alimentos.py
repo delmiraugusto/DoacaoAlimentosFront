@@ -7,7 +7,7 @@ from tkinter import ttk
 def abrir_tela():
     janela = tk.Toplevel()
     janela.title("Alimentos")
-    janela.geometry("600x450")
+    janela.geometry("950x450")
 
     colunas = ["id", "nome", "marca"]
     tree = ttk.Treeview(janela, columns=colunas, show="headings")

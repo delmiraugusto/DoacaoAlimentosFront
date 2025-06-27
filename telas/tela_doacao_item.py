@@ -3,41 +3,48 @@ import requests
 from datetime import datetime
 from tkinter import messagebox, simpledialog
 from servicos import api
+from tkinter import ttk
 
 def abrir_tela():
     janela = tk.Toplevel()
     janela.title("Doação Item")
-    janela.geometry("400x350")
+    janela.geometry("950x450")
 
-    id_doacaoItem_atual = None
+    colunas = ["id", "doacao_id", "alimento_id", "quantidade", "data_vencimento"]
 
-    campos = ["doacao_id", "alimento_id", "quantidade", "data_vencimento"]
-    entradas = {}
+    tree = ttk.Treeview(janela, columns=colunas, show="headings")
+    for col in colunas:
+        tree.heading(col, text=col.capitalize())
+        tree.column(col, width=150)
 
-    tk.Label(janela, text="Doação Item", font=("Arial", 16, "bold")).pack(pady=10)
+    tree.pack(pady=10, fill=tk.BOTH, expand=True)
 
-    for campo in campos:
-        tk.Label(janela, text=campo).pack()
-        entry = tk.Entry(janela, width=40)
-        entry.pack()
-        entradas[campo] = entry
+    entry_edicao = {"widget": None}
 
-    def buscar():
-        global id_doacaoItem_atual
+    def listar_todos():
+        try:
+            for i in tree.get_children():
+                tree.delete(i)
+            doacoesItens = api.get("doacoesItens")
+            for dI in doacoesItens:
+                tree.insert("", tk.END, values=(dI["id"], dI["doacao_id"], dI["alimento_id"], dI["quantidade"], dI["data_vencimento"],))
+        except requests.exceptions.HTTPError as e:
+            messagebox.showerror("Erro", e.response.text)
+
+    def buscar_por_id():
         try:
             id_ = simpledialog.askstring("Buscar Doacao Item", "Informe o ID:")
             if not id_:
                 return
-            dados = api.get_por_id("doacoesItens", id_)
-            id_doacaoItem_atual = id_
 
-            for campo in campos:
-                entradas[campo].delete(0, tk.END)
-                valor = dados.get(campo, "")
-                entradas[campo].insert(0, "" if valor is None else str(valor))
+            for i in tree.get_children():
+                tree.delete(i)
+
+            dados = api.get_por_id("doacoesItens", id_)
+            tree.insert("", tk.END, values=(id_, dados["doacao_id"], dados["alimento_id"], dados["quantidade"], dados["data_vencimento"]))
+
         except requests.exceptions.HTTPError as e:
-            erro = e.response.text
-            messagebox.showerror("Erro: ", str(erro))
+            messagebox.showerror("Erro", e.response.text)
 
 
     def abrir_tela_cadastro():
@@ -97,38 +104,62 @@ def abrir_tela():
         tk.Button(cadastro, text="Cadastrar", width=20, command=enviar_cadastro).pack(pady=10)
 
     def editar():
-        global id_doacaoItem_atual
+        if entry_edicao["widget"] is not None:
+            entry_edicao["widget"].event_generate("<FocusOut>")
+
+        selecionado = tree.selection()
+        if not selecionado:
+            messagebox.showwarning("Aviso", "Selecione uma Doacao Item para editar.")
+            return
+
+        item_id = selecionado[0]
+        valores = tree.item(item_id, "values")
+        id_ = valores[0]
+        doacao_id = valores[1]
+        alimento_id = valores[2]
+        quantidade = valores[3]
+        data_vencimento = valores[4]
+
         try:
-            if not id_doacaoItem_atual:
-                id_doacaoItem_atual = simpledialog.askstring("Editar Doacao Item", "Informe o ID:")
-                if not id_doacaoItem_atual:
-                    return
-
-            id_ = id_doacaoItem_atual
-            dados = {}
-
-            for campo in campos:
-                valor = entradas[campo].get().strip()
-
-                if not valor:
-                    continue
-
-                if campo == "data_vencimento":
-                    try:
-                        datetime.strptime(valor, "%Y-%m-%d")
-                        dados[campo] = valor
-                    except ValueError:
-                        messagebox.showerror("Erro", "Data inválida. Use o formato: YYYY-MM-DD")
-                        return
-                else:
-                    dados[campo] = valor
-
+            dados = {"doacao_id": doacao_id, "alimento_id": alimento_id, "quantidade": quantidade, "data_vencimento": data_vencimento}
             res = api.put("doacoesItens", id_, dados)
-            messagebox.showinfo("Resposta da API", res["msg"])
-
+            messagebox.showinfo("Sucesso", res["msg"])
         except requests.exceptions.HTTPError as e:
-            erro = e.response.text
-            messagebox.showerror("Erro: ", str(erro))
+            messagebox.showerror("Erro", e.response.text)
+
+    def editar_celula(event):
+        item = tree.identify_row(event.y)
+        coluna = tree.identify_column(event.x)
+        if not item or coluna == "#1":
+            return
+
+        col_index = int(coluna[1:]) - 1
+        x, y, largura, altura = tree.bbox(item, column=coluna)
+        valor_atual = tree.item(item, "values")[col_index]
+
+        tree.selection_set(item)
+
+        entry = tk.Entry(janela)
+        entry.place(x=x + tree.winfo_rootx() - janela.winfo_rootx(),
+                    y=y + tree.winfo_rooty() - janela.winfo_rooty(),
+                    width=largura, height=altura)
+        entry.insert(0, valor_atual)
+        entry.focus()
+
+        entry_edicao["widget"] = entry
+
+        def salvar_edicao(e=None):
+            novo_valor = entry.get()
+            valores = list(tree.item(item, "values"))
+            valores[col_index] = novo_valor
+            tree.item(item, values=valores)
+            entry.destroy()
+            entry_edicao["widget"] = None  
+
+        entry.bind("<Return>", salvar_edicao)
+        entry.bind("<FocusOut>", salvar_edicao)
+        
+    tree.bind("<Double-1>", editar_celula)
 
     def excluir():
         try:
@@ -142,16 +173,17 @@ def abrir_tela():
             messagebox.showerror("Erro: ", str(erro))
 
     def limpar():
-        for entrada in entradas.values():
-            entrada.delete(0, tk.END)
+        for item in tree.get_children():
+            tree.delete(item)
 
     botoes_frame = tk.Frame(janela)
     botoes_frame.pack(pady=10)
 
     for texto, comando in [
-        ("Buscar", buscar),
+        ("Listar Todos", listar_todos),
+        ("Buscar", buscar_por_id),
         ("Cadastrar", abrir_tela_cadastro),
-        ("Editar", editar),
+        ("Editar", editar), 
         ("Excluir", excluir)
     ]:
         tk.Button(botoes_frame, text=texto, width=10, command=comando).pack(side=tk.LEFT, padx=5)
