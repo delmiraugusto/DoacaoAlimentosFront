@@ -7,7 +7,7 @@ from telas import (
 def iniciar():
     root = tk.Tk()
     root.title("Doação de Alimentos")
-    root.geometry("500x400")
+    root.geometry("600x400")
 
     tk.Label(root, text="Doação de Alimentos", font=("Arial", 20, "bold")).pack(pady=20)
 
@@ -21,8 +21,14 @@ def iniciar():
         ("DoacaoItem", tela_doacao_item.abrir_tela)
     ]
 
-    for texto, comando in botoes:
-        tk.Button(root, text=texto, width=20, command=comando).pack(pady=5)
+    frame_botoes = tk.Frame(root)
+    frame_botoes.pack()
+
+    for i, (texto, comando) in enumerate(botoes):
+        linha = 0 if i < 4 else 1
+        coluna = i if i < 4 else i - 4
+        btn = tk.Button(frame_botoes, text=texto, width=15, command=comando)
+        btn.grid(row=linha, column=coluna, padx=10, pady=10)
 
     root.mainloop()
 
