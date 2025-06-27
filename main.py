@@ -34,3 +34,7 @@ def iniciar():
 
 if __name__ == "__main__":
     iniciar()
+
+# Para Ativar a venv: .\venv\Scripts\Activate.ps1  
+
+# Para rodar: python main.py
